@@ -520,6 +520,24 @@ st.markdown(
     '<div class="tagline">English in · Tableau out · With the warnings nobody tells you</div>',
     unsafe_allow_html=True,
 )
+st.markdown(
+    '<div style="background:#0a0e17;border:1px solid #0f1623;border-radius:10px;'
+    'padding:14px 20px;margin-bottom:24px;display:flex;align-items:center;'
+    'justify-content:space-between;flex-wrap:wrap;gap:10px;">'
+    '<div style="color:#475569;font-size:13px;line-height:1.6;max-width:680px;">'
+    'A Tableau expression tool with three modes: <strong style="color:#64748b;">Generate</strong> '
+    'turns plain-English questions into production-ready calculated fields, '
+    '<strong style="color:#64748b;">Explain</strong> breaks down any existing expression in plain English, '
+    'and <strong style="color:#64748b;">Debug</strong> diagnoses why a calc is returning wrong results '
+    'and gives you the fix.'
+    '</div>'
+    '<div style="color:#334155;font-size:12px;white-space:nowrap;">'
+    'By <a href="https://linkedin.com/in/vaishalizilpe" target="_blank" '
+    'style="color:#f59e0b;text-decoration:none;font-weight:600;">Vaishali Zilpe</a>'
+    '</div>'
+    '</div>',
+    unsafe_allow_html=True,
+)
 
 # ── Shared Claude client ───────────────────────────────────────────────────────
 def get_client() -> anthropic.Anthropic | None:
