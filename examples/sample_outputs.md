@@ -1,131 +1,141 @@
-# Sample Outputs
+# Sample Outputs — Calibration Examples
 
-Five complete worked examples. Use these to calibrate tone, specificity, and structure.
+These five examples demonstrate the expected output format and quality level for deLOD. Use these to calibrate response depth, warning specificity, and teaching quality.
 
 ---
 
-## Example 1: % of Total (LOD FIXED)
+## Example 1: LOD FIXED — % of Total
 
-**User input**: "Show each category's sales as a % of total sales. Schema: [Category] (String), [Sales] (Number), [Order Date] (Date), [Region] (String)."
+**User question:** "Show each region's sales as a % of total sales"
+
+**Schema:** [Region] (String), [Sales] (Number), [Order Date] (Date)
 
 ```json
 {
   "expression_type": "LOD FIXED",
-  "field_name": "Category % of Total Sales",
-  "primary_expression": "SUM([Sales])\n/\nSUM({FIXED : SUM([Sales])})",
+  "field_name": "Region % of Total Sales",
+  "primary_expression": "SUM([Sales]) / SUM({FIXED : SUM([Sales])})",
   "alternative_expression": "SUM([Sales]) / TOTAL(SUM([Sales]))",
-  "alternative_tradeoff": "TOTAL() is a table calculation that respects visible filters — use it when you want '% of what the user can see'; use the FIXED version when you want '% of the absolute total regardless of filters'.",
-  "explanation": "The numerator SUM([Sales]) aggregates at the view grain — whatever dimension is on the shelf. The denominator uses an empty FIXED LOD (no dimension declaration) to compute the table-scoped grand total, independent of any dimensions in the view. Dividing gives each category's share of the whole.",
-  "performance_notes": "An empty FIXED LOD runs as a single subquery against the data source and is generally fast. On a live connection with a very large table, the subquery adds one extra round-trip per render — consider pre-computing this in a data source calculated field.",
+  "alternative_tradeoff": "TOTAL() always reflects visible filtered data; use it when you want '% of what's shown' and FIXED when you want '% of everything regardless of filters'.",
+  "explanation": "The numerator SUM([Sales]) aggregates at the view level — one value per Region on the shelf. The denominator uses a table-scoped FIXED LOD (empty dimension declaration) to compute total [Sales] across the entire dataset, independent of the view. Dividing gives each region's share of the whole.",
+  "performance_notes": "Table-scoped FIXED LODs generate a single subquery against the data source. On large tables with a live connection this runs once per render. On an extract it's computed at extract time and cached — no render-time cost.",
   "edge_case_warnings": [
-    "If [Region] is on the Filters shelf as a regular dimension filter, the FIXED denominator still includes ALL regions — your percentages will sum to less than 100% of the visible data. Promote the Region filter to Context (right-click → Add to Context) to fix this.",
-    "Format the field as Percentage in Tableau (right-click field → Format → Numbers → Percentage) — it stores as a decimal and will display as 0.23 without formatting.",
-    "If [Sales] contains NULLs, SUM([Sales]) silently ignores those rows. If NULLs should count as zero revenue, wrap with ZN(): SUM(ZN([Sales])) / SUM({FIXED : SUM(ZN([Sales]))})."
+    "If [Region] is on the Filters shelf as a regular filter, the denominator still reflects ALL regions — your percentages will sum to less than 100% of the visible data. Right-click [Region] on Filters → Add to Context to fix this.",
+    "Format the result field as Percentage in Tableau (right-click the field → Format → Numbers → Percentage) or it displays as a decimal like 0.342.",
+    "If [Sales] contains NULLs, those rows are silently dropped from the numerator. If NULLs should count as zero, wrap with ZN(): SUM(ZN([Sales])) / SUM({FIXED : SUM(ZN([Sales]))})."
   ],
   "complexity_rating": "Simple",
-  "teach_me": "FIXED LOD expressions compute before dimension filters run — that's why they ignore the Filters shelf unless you promote filters to Context, and it's the single most common cause of 'my percentages don't add up to 100%' bugs."
+  "teach_me": "FIXED LOD expressions compute before dimension filters run — this is the single most common source of 'my percentages don't add up to 100%' bugs in Tableau."
 }
 ```
 
 ---
 
-## Example 2: Rolling 3-Month Average (Table Calculation)
+## Example 2: LOD INCLUDE — Average at a Finer Grain
 
-**User input**: "Rolling 3-month average of sales by region. Schema: [Region] (String), [Sales] (Number), [Order Date] (Date)."
+**User question:** "What's the average order value per customer, shown by region?"
 
-```json
-{
-  "expression_type": "Table Calculation",
-  "field_name": "Rolling 3-Month Avg Sales",
-  "primary_expression": "WINDOW_AVG(\n  SUM([Sales]),\n  -2,\n  0\n)",
-  "alternative_expression": "(LOOKUP(SUM([Sales]), 0) + LOOKUP(SUM([Sales]), -1) + LOOKUP(SUM([Sales]), -2)) / 3",
-  "alternative_tradeoff": "The LOOKUP version makes the averaging logic explicit and lets you handle NULLs on the first two periods differently, but WINDOW_AVG is cleaner and handles variable window sizes more gracefully.",
-  "explanation": "WINDOW_AVG averages SUM([Sales]) across a window of 3 marks: the current mark (0) and the 2 prior marks (-2 to 0). Tableau evaluates this after aggregating to the view level, so it operates on whatever grain [Order Date] is truncated to on the shelf — typically month.",
-  "performance_notes": "Table calculations run entirely in Tableau's local cache (post-query). They add no database load, making WINDOW_AVG fast even on large datasets. The trade-off is they can only see data already in the view — they cannot look at filtered-out months.",
-  "edge_case_warnings": [
-    "Open Edit Table Calculation and set Addressing to [Order Date] (Specific Dimensions) and Partitioning to [Region]. If Addressing is left as 'Table (Across)', the window will span across regions at month boundaries — the rolling average for January East will include December West.",
-    "The first two months of each region's series will have fewer than 3 data points — WINDOW_AVG computes on however many are available (1 or 2), not NULL. If you want the first two months to show NULL instead, use: IIF(INDEX() < 3, NULL, WINDOW_AVG(SUM([Sales]), -2, 0)).",
-    "Ensure [Order Date] is sorted ascending in the view (Sort → Field → [Order Date] → Ascending). If sorted by Sales, the rolling average becomes meaningless.",
-    "This calculation cannot be placed on the Filters shelf. If you need to filter by this average, pre-compute it as a FIXED LOD instead."
-  ],
-  "complexity_rating": "Moderate",
-  "teach_me": "Table calculations operate on marks already in the view — they're fast and filter-aware, but they're blind to data the user has filtered out, which makes them wrong for any 'absolute' benchmark that should ignore the current filter context."
-}
-```
-
----
-
-## Example 3: Average Order Value per Customer by Region (LOD INCLUDE)
-
-**User input**: "I want to show average order value per customer, but my viz only has region on it. Schema: [Customer ID] (String), [Order ID] (String), [Region] (String), [Sales] (Number)."
+**Schema:** [Customer ID] (String), [Order ID] (String), [Region] (String), [Sales] (Number)
 
 ```json
 {
   "expression_type": "LOD INCLUDE",
   "field_name": "Avg Order Value per Customer",
-  "primary_expression": "AVG(\n  {INCLUDE [Customer ID] : SUM([Sales])}\n)",
-  "alternative_expression": "AVG(\n  {INCLUDE [Order ID] : SUM([Sales])}\n)",
-  "alternative_tradeoff": "Including [Order ID] gives average per-order value (every order weighted equally); including [Customer ID] gives average total-spend per customer (each customer weighted equally regardless of how many orders they placed). Choose based on whether you want order-level or customer-level averaging.",
-  "explanation": "The INCLUDE LOD computes SUM([Sales]) at the [Customer ID] grain — total spend per customer — before aggregating to the view level. The outer AVG() then averages those customer totals across the [Region] currently on the shelf. Without INCLUDE, AVG([Sales]) would give average line-item value, not average customer spend.",
-  "performance_notes": "INCLUDE LODs respect dimension filters (unlike FIXED), so they recalculate when users filter by segment or date — this is usually the correct behavior. On large datasets with many distinct Customer IDs, the subquery can be expensive on live connections.",
+  "primary_expression": "AVG({INCLUDE [Customer ID] : SUM([Sales])})",
+  "alternative_expression": "SUM([Sales]) / COUNTD([Customer ID])",
+  "alternative_tradeoff": "The alternative gives revenue per customer at the view grain but doesn't account for order-level variation — use INCLUDE when you want the true average of each customer's total, not a blended aggregate.",
+  "explanation": "The INCLUDE LOD computes total [Sales] per [Customer ID], even though the view is at Region level. AVG() then averages those customer-level totals across the region. This gives the average total spend per customer for each region — not average line item value.",
+  "performance_notes": "INCLUDE LODs respect dimension filters (unlike FIXED), so this calc updates correctly when users filter by Region or other dimensions. It generates a subquery on live connections — on large customer tables consider an extract.",
   "edge_case_warnings": [
-    "The outer aggregate is required: you cannot place {INCLUDE [Customer ID] : SUM([Sales])} directly in the view as a measure — Tableau needs AVG(), SUM(), MIN(), or MAX() to know how to collapse customer-level values to region level.",
-    "If a customer appears in multiple regions (e.g., they placed orders in East and West), they will be counted in both regions' averages. If customers belong to exactly one region, this is not an issue.",
-    "This calculation respects dimension filters. If the user filters to Region = 'East', the average reflects only East customers. If you want a fixed benchmark that ignores region filters, use FIXED instead of INCLUDE."
+    "The outer aggregate AVG() is required — omitting it produces a 'Cannot mix aggregate and non-aggregate' error because the INCLUDE returns one value per Customer per Region, and Tableau needs to know how to collapse those to the Region level.",
+    "If one customer placed orders in multiple regions, their total [Sales] is attributed to each region they appear in — they'll be counted in every applicable region's average, not split proportionally.",
+    "INCLUDE LODs respect dimension filters, so if a user filters to Region = 'East', only East customers contribute to the average. This is usually correct behavior — flag it if the requirement is 'company-wide average regardless of filters'."
   ],
   "complexity_rating": "Moderate",
-  "teach_me": "INCLUDE LOD is the right tool when you need to compute at a finer grain than your view — it pulls in a lower-level dimension just for the calculation, then lets the outer aggregate collapse it back to the view grain."
+  "teach_me": "INCLUDE LODs let you compute at a finer grain than the view and then reaggregate — always wrap them in an outer aggregate (AVG, SUM, MAX) or Tableau will throw an aggregation error."
 }
 ```
 
 ---
 
-## Example 4: Year-over-Year Revenue Growth (Date Function + Table Calculation)
+## Example 3: Table Calculation — Rolling Average
 
-**User input**: "YoY revenue growth % by month. Schema: [Order Date] (Date), [Sales] (Number), [Category] (String)."
+**User question:** "Rolling 3-month average of sales by region"
+
+**Schema:** [Region] (String), [Order Date] (Date), [Sales] (Number)
+
+```json
+{
+  "expression_type": "Table Calculation",
+  "field_name": "3-Month Rolling Avg Sales",
+  "primary_expression": "WINDOW_AVG(SUM([Sales]), -2, 0)",
+  "alternative_expression": "(SUM([Sales]) + LOOKUP(SUM([Sales]), -1) + LOOKUP(SUM([Sales]), -2)) / 3",
+  "alternative_tradeoff": "LOOKUP-based alternative makes each component visible for debugging but fails when any prior period is NULL (start of data) — WINDOW_AVG handles partial windows at boundaries more gracefully.",
+  "explanation": "WINDOW_AVG computes the average of SUM([Sales]) across a window from 2 rows back to the current row (3 values total). The window moves forward one row at a time as Tableau evaluates each mark. The result at each month is the average of that month and the two prior months.",
+  "performance_notes": "Table calculations run on data already fetched into the view — they're fast regardless of data source size. However, they're blind to filtered-out data: if a user filters out January, the February rolling average only has one prior month available.",
+  "edge_case_warnings": [
+    "In Edit Table Calculation, set Addressing to [Order Date] and Partitioning to [Region]. If Region is in the Addressing direction, the average will span across regions — almost certainly wrong.",
+    "WINDOW_AVG at the start of each partition (first 1–2 months per region) has fewer than 3 values available. Tableau averages whatever is available — the first month shows 1-month avg, second shows 2-month avg. This is not an error but can look odd. Add a label or annotation to the chart.",
+    "If [Order Date] sort order in the view is descending (newest first), the rolling average runs backwards — most recent month averages the next two future months. Ensure the view is sorted ascending by [Order Date].",
+    "Table calcs cannot be placed on the Filters shelf to exclude marks — filtering changes what data is in the view, which changes what the table calc sees. Use FIXED LOD if you need to filter on an aggregated value."
+  ],
+  "complexity_rating": "Moderate",
+  "teach_me": "Table calculations operate on the data already rendered in the view — they're fast, but filtering changes their result because filtered rows are no longer available to the calculation window."
+}
+```
+
+---
+
+## Example 4: Date Function — Year-over-Year Comparison
+
+**User question:** "Show revenue this year vs same period last year"
+
+**Schema:** [Order Date] (Date), [Sales] (Number), [Region] (String)
 
 ```json
 {
   "expression_type": "Table Calculation",
   "field_name": "YoY Revenue Growth %",
-  "primary_expression": "(SUM([Sales]) - LOOKUP(SUM([Sales]), -12))\n/\nABS(LOOKUP(SUM([Sales]), -12))",
-  "alternative_expression": "SUM([Sales]) / LOOKUP(SUM([Sales]), -12) - 1",
-  "alternative_tradeoff": "The division-minus-one form is more compact but returns NULL (not a negative percentage) when the prior period was zero — the explicit subtraction form makes the logic clearer and handles edge cases more visibly.",
-  "explanation": "LOOKUP([Sales], -12) navigates 12 marks prior in the table — i.e., the same month last year — when the view is set to monthly grain. The numerator is the absolute change; dividing by the absolute value of the prior period handles cases where prior-year revenue was negative (e.g., net refunds).",
-  "performance_notes": "This is a table calculation: fast, no extra database query. However, it requires 12 months of prior data to exist in the view. If the viz only shows the current year, LOOKUP(-12) returns NULL everywhere.",
+  "primary_expression": "(SUM([Sales]) - LOOKUP(SUM([Sales]), -1)) / ABS(LOOKUP(SUM([Sales]), -1))",
+  "alternative_expression": "SUM(IF YEAR([Order Date]) = YEAR(TODAY()) THEN [Sales] END) / SUM(IF YEAR([Order Date]) = YEAR(TODAY()) - 1 THEN [Sales] END) - 1",
+  "alternative_tradeoff": "The alternative is a standalone calculated field with no table calc dependencies — easier to use in filters and LODs — but requires both years to be in the data and doesn't work on a time series axis.",
+  "explanation": "LOOKUP(-1) references the value one row back in the Addressing direction. When [Order Date] is on the axis with yearly granularity, each row is one year — so LOOKUP(-1) is the prior year. The formula divides the change by the absolute prior year value, returning a signed growth percentage.",
+  "performance_notes": null,
   "edge_case_warnings": [
-    "In Edit Table Calculation, set Addressing to [Order Date] (Month) with Specific Dimensions. If [Category] is in the view and left in the addressing, the -12 offset navigates 12 categories instead of 12 months.",
-    "Ensure [Order Date] is shown at Month grain on the shelf (DATETRUNC or the built-in date hierarchy at Month level). At Day grain, -12 means 12 days ago, not 12 months.",
-    "The first 12 months of the time series will show NULL — there's no prior-year data to compare against. Consider using ISNULL() to label those marks as 'No prior year data' rather than leaving them blank.",
-    "If the current year is incomplete (e.g., you're in April), the YoY comparison for May–December will show NULL, which is correct behavior — but can look like missing data to end users. Add an annotation or a reference line to explain."
+    "Set Addressing to [Order Date] in Edit Table Calculation. If Region is in the Addressing direction, LOOKUP(-1) returns the prior region's value, not the prior year — completely wrong result.",
+    "The first year in the view returns NULL (no prior year to look up). Wrap the whole expression in ZN() if you want 0% instead of NULL for the first year: ZN((SUM([Sales]) - LOOKUP(SUM([Sales]), -1)) / ABS(LOOKUP(SUM([Sales]), -1)))",
+    "This comparison includes the partial current year. If today is June, the current year has 6 months of data vs last year's full 12. YoY will look negative for annual comparisons. If you want same-period-last-year, filter both years to the same month range.",
+    "If prior year [Sales] is 0 or NULL, ABS(LOOKUP(SUM([Sales]), -1)) returns 0 and the formula divides by zero — returns NULL. Handle with: IF LOOKUP(SUM([Sales]), -1) = 0 THEN NULL ELSE ... END"
   ],
   "complexity_rating": "Moderate",
-  "teach_me": "LOOKUP() is the most flexible table calculation for time-intelligence — it navigates N marks in any direction, making it the right tool for any 'same period last year' or 'N periods ago' comparison, as long as your sort order and addressing are set correctly."
+  "teach_me": "LOOKUP() references other marks in the view by relative position — always specify Addressing explicitly, because the default direction is often wrong and produces silently incorrect results."
 }
 ```
 
 ---
 
-## Example 5: Customer Cohort First Purchase Month (LOD FIXED, Chained)
+## Example 5: Chained LOD Pattern — Customer Cohort
 
-**User input**: "I want to bucket customers by the month they first purchased, then see how their total spend grows over time. Schema: [Customer ID] (String), [Order ID] (String), [Order Date] (Date), [Sales] (Number)."
+**User question:** "Assign each customer to their first purchase month so I can track cohorts"
+
+**Schema:** [Customer ID] (String), [Order Date] (Date), [Sales] (Number)
 
 ```json
 {
   "expression_type": "LOD FIXED",
-  "field_name": "First Purchase Month",
-  "primary_expression": "DATETRUNC(\n  'month',\n  {FIXED [Customer ID] : MIN([Order Date])}\n)",
-  "alternative_expression": "{FIXED [Customer ID] : MIN(DATETRUNC('month', [Order Date]))}",
-  "alternative_tradeoff": "Both produce the same result. The primary form is easier to read — FIXED gives the raw first date, then DATETRUNC truncates it. The alternative applies truncation inside the LOD, which is marginally more efficient but harder to reuse if you need the exact first-date elsewhere.",
-  "explanation": "The inner FIXED LOD computes the earliest [Order Date] for each [Customer ID], independent of whatever date is on the viz. DATETRUNC('month', ...) then rounds that date to the first of the month, creating a clean cohort label like '2023-01-01' that Tableau displays as 'January 2023'. Place this field on Columns to create a cohort grid.",
-  "performance_notes": "This is a FIXED LOD — it runs as a subquery once per render. For a large customer table (millions of Customer IDs), this can be slow on live connections. Consider materializing cohort assignment in the data source or using a Tableau extract where it's computed at extract time.",
+  "field_name": "Cohort Month",
+  "primary_expression": "DATETRUNC('month', {FIXED [Customer ID] : MIN([Order Date])})",
+  "alternative_expression": null,
+  "alternative_tradeoff": null,
+  "explanation": "The inner FIXED LOD computes the earliest [Order Date] for each [Customer ID] across the entire dataset — this is the customer's first purchase date, independent of any view filters. DATETRUNC('month') then snaps that date to the first day of the month, giving a clean cohort label. Place this dimension on the view to group customers by when they first bought.",
+  "performance_notes": "This FIXED LOD runs as a subquery once per render on live connections. On large customer tables it's efficient — the MIN aggregation is database-native. On an extract, computed at extract time.",
   "edge_case_warnings": [
-    "This field calculates cohort independently of all dimension filters. If you filter to Region = 'East', customers who first purchased in the West still carry their original cohort date — which is correct for cohort analysis (cohort assignment should not change with filters), but surprising if users expect filtered behavior.",
-    "A customer with only NULL [Order Date] values will have a NULL cohort — they'll appear as a separate 'null cohort' in the viz. Filter NULLs at the data source level if this is not meaningful.",
-    "To complete the cohort analysis, you'll need a second calculated field for 'Months Since First Purchase': DATEDIFF('month', [First Purchase Month], DATETRUNC('month', [Order Date])). Place this on Rows alongside cohort on Columns for the classic retention grid.",
-    "DATETRUNC returns a DATE value. Tableau may display it as a full date (2023-01-01) rather than 'Jan 2023' by default. Right-click the axis → Format → Dates → 'MMM YYYY' for a cleaner label."
+    "This is a chained expression. Use [Cohort Month] as a dimension on your view (Rows/Columns/Color). It will not work as a measure.",
+    "DATETRUNC returns a DATE value — '2024-01-01' for any January 2024 first purchase. Tableau will display it based on your date format settings. If you want 'Jan 2024' as a label, use DATENAME('month', ...) + ' ' + STR(YEAR(...)) instead.",
+    "If a customer has orders in multiple years and you filter to a single year, the FIXED LOD still returns their true first purchase date (which may be in a prior year). This is correct cohort behavior — flag it if the team expects cohort assignment to reset with filters.",
+    "Customers with NULL [Customer ID] will all be grouped into a single 'null cohort' — their minimum order date becomes one cohort. Filter NULLs at the data source if this isn't the intended behavior."
   ],
-  "complexity_rating": "Advanced",
-  "teach_me": "Cohort assignment belongs in a FIXED LOD, not a table calculation — FIXED locks the assignment to each customer's own history regardless of what's visible in the view, which is exactly what cohort analysis requires."
+  "complexity_rating": "Moderate",
+  "teach_me": "Cohort assignment should almost always be a FIXED LOD — it needs to return the same value for a customer regardless of what's on the view, which is exactly what FIXED is designed for."
 }
 ```

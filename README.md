@@ -4,7 +4,7 @@
 
 ![Status](https://img.shields.io/badge/status-live-orange) ![Model](https://img.shields.io/badge/Claude-Sonnet%204.5-blueviolet) ![Stack](https://img.shields.io/badge/stack-Streamlit%20%7C%20Python-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
-🔗 **Live demo:** [delod.streamlit.app](https://delod.streamlit.app)
+🔗 **Live demo:** [delodbyvz.streamlit.app](https://delodbyvz.streamlit.app)
 
 ---
 
