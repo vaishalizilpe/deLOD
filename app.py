@@ -536,7 +536,7 @@ def stream_and_parse(client: anthropic.Anthropic, system_blocks, messages) -> di
     placeholder = st.empty()
     try:
         with client.messages.stream(
-            model="claude-sonnet-4-6",
+            model="claude-sonnet-4-5",
             max_tokens=2000,
             system=system_blocks,
             messages=messages,
