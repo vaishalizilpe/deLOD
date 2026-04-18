@@ -1,0 +1,15 @@
+{
+  "label": "💰 Finance / FP&A",
+  "description": "GL transactions, budget vs actuals, fiscal period reporting",
+  "fields": [
+    { "name": "Account Code",    "type": "String" },
+    { "name": "Account Name",    "type": "String" },
+    { "name": "Cost Center",     "type": "String" },
+    { "name": "Department",      "type": "String" },
+    { "name": "Transaction Date","type": "Date"   },
+    { "name": "Fiscal Year",     "type": "Number" },
+    { "name": "Fiscal Quarter",  "type": "Number" },
+    { "name": "Actuals Amount",  "type": "Number" },
+    { "name": "Budget Amount",   "type": "Number" }
+  ]
+}

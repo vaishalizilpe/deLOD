@@ -1,0 +1,16 @@
+{
+  "label": "🛍️ Retail",
+  "description": "E-commerce or retail orders with customers, products, and transactions",
+  "fields": [
+    { "name": "Order ID",    "type": "String" },
+    { "name": "Customer ID", "type": "String" },
+    { "name": "Order Date",  "type": "Date" },
+    { "name": "Region",      "type": "String" },
+    { "name": "Category",    "type": "String" },
+    { "name": "Sub-Category","type": "String" },
+    { "name": "Sales",       "type": "Number" },
+    { "name": "Profit",      "type": "Number" },
+    { "name": "Quantity",    "type": "Number" },
+    { "name": "Discount",    "type": "Number" }
+  ]
+}

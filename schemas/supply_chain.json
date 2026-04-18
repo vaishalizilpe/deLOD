@@ -1,0 +1,16 @@
+{
+  "label": "🔗 Supply Chain / ESG",
+  "description": "Supply chain operations with suppliers, deliveries, and sustainability metrics",
+  "fields": [
+    { "name": "Supplier ID",       "type": "String" },
+    { "name": "PO Date",           "type": "Date" },
+    { "name": "Delivery Date",     "type": "Date" },
+    { "name": "Product ID",        "type": "String" },
+    { "name": "Units Ordered",     "type": "Number" },
+    { "name": "Units Received",    "type": "Number" },
+    { "name": "Lead Time Days",    "type": "Number" },
+    { "name": "Unit Cost",         "type": "Number" },
+    { "name": "Carbon Emissions",  "type": "Number" },
+    { "name": "Region",            "type": "String" }
+  ]
+}

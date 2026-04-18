@@ -1,0 +1,16 @@
+{
+  "label": "📣 Marketing",
+  "description": "Campaign performance, digital spend, sessions, and conversions",
+  "fields": [
+    { "name": "Campaign ID",   "type": "String" },
+    { "name": "Campaign Name", "type": "String" },
+    { "name": "Channel",       "type": "String" },
+    { "name": "Date",          "type": "Date"   },
+    { "name": "Impressions",   "type": "Number" },
+    { "name": "Clicks",        "type": "Number" },
+    { "name": "Spend",         "type": "Number" },
+    { "name": "Sessions",      "type": "Number" },
+    { "name": "Conversions",   "type": "Number" },
+    { "name": "Revenue",       "type": "Number" }
+  ]
+}

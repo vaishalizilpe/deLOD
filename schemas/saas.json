@@ -1,0 +1,16 @@
+{
+  "label": "☁️ SaaS",
+  "description": "Subscription business with accounts, users, MRR, and churn",
+  "fields": [
+    { "name": "Account ID",         "type": "String" },
+    { "name": "User ID",            "type": "String" },
+    { "name": "Subscription Start", "type": "Date" },
+    { "name": "Subscription End",   "type": "Date" },
+    { "name": "MRR",                "type": "Number" },
+    { "name": "ARR",                "type": "Number" },
+    { "name": "Plan Tier",          "type": "String" },
+    { "name": "Churn Date",         "type": "Date" },
+    { "name": "Sessions",           "type": "Number" },
+    { "name": "Active Flag",        "type": "Boolean" }
+  ]
+}
