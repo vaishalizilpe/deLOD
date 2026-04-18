@@ -2,7 +2,7 @@
 
 **Plain English in. Production-ready Tableau expressions out. With the warnings nobody tells you.**
 
-![Status](https://img.shields.io/badge/status-live-orange) ![Model](https://img.shields.io/badge/Claude-Sonnet%204.6-blueviolet) ![Stack](https://img.shields.io/badge/stack-Streamlit%20%7C%20Python-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+![Status](https://img.shields.io/badge/status-live-orange) ![Model](https://img.shields.io/badge/Claude-Sonnet%204.5-blueviolet) ![Stack](https://img.shields.io/badge/stack-Streamlit%20%7C%20Python-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
 🔗 **Live demo:** [delod.streamlit.app](https://delod.streamlit.app)
 
@@ -57,15 +57,31 @@ deLOD is for the analyst who doesn't have Tableau Cloud AI — contractors, free
 
 ## Features
 
-- **5 built-in domain schemas** — Retail, SaaS, Supply Chain, Finance/FP&A, Marketing — or build your own field by field
+**Three modes:**
+
+- **⚡ Generate Expression** — describe what you want in plain English, get a production-ready calculated field with warnings, an alternative approach, and a teaching principle
+- **🔍 Explain This Calc** — paste any Tableau expression (inherited, from Stack Overflow, or your own) and get a plain-English breakdown, quality assessment (Good / Brittle / Over-engineered / Wrong approach), and a refactored version if it can be improved
+- **🔧 LOD Debugger** — paste a broken expression, describe what it returns vs what you expected, get an exact root cause diagnosis and a corrected expression
+
+**Schema & data:**
+
+- **6 built-in domain schemas** — Retail, SaaS, Supply Chain, Finance/FP&A, Marketing, or Custom
+- **Import from CSV or Excel** — upload a file, field names and types are detected automatically
+- **Import from Tableau Public** — paste a workbook URL, field names are pulled directly from the published `.twb`
+
+**Expression quality:**
+
 - **8 expression types** — LOD FIXED, INCLUDE, EXCLUDE, Table Calculation, Date Function, Conditional, String Function, Basic Aggregate
-- **Expert warnings** — specific to the expression written, not generic Tableau tips (Context Filters, Addressing/Partitioning, NULL propagation, fiscal year behavior, COUNT vs COUNTD)
-- **Alternative approaches** — when a meaningfully different solution exists, shown with a one-line tradeoff
+- **Expert warnings** — specific to the expression written (Context Filters, Addressing/Partitioning, NULL propagation, fiscal year behavior, COUNT vs COUNTD)
+- **Alternative approaches** — when a meaningfully different solution exists, shown with a one-line tradeoff explaining when to choose each
 - **Performance notes** — LOD subquery cost, extract vs live behavior, table calc evaluation order
 - **Teaching principle** — one generalizable lesson per answer
-- **Session history** — last 5 questions available in one click
-- **Prompt caching** — large system prompt cached via Anthropic's API, reducing latency on repeat use
-- **Streaming output** — live feedback while generating
+
+**Under the hood:**
+
+- **Prompt caching** — large expert knowledge base cached via Anthropic's API, reducing latency on repeat use
+- **Streaming output** — live character feedback while generating
+- **Session history** — last 5 Generate questions available in one click
 
 ---
 
@@ -97,15 +113,18 @@ Get an API key at [console.anthropic.com](https://console.anthropic.com). The fr
 
 ```
 delod/
-├── app.py                        # Streamlit UI + rendering
+├── app.py                        # Streamlit UI — three modes, schema import, rendering
+├── tableau_public.py             # Tableau Public URL parser + .twb field extractor
 ├── prompts/
-│   └── system_prompt.py          # Core IP — the prompt + caching logic
+│   ├── system_prompt.py          # Generate mode — prompt + caching logic
+│   ├── explain_prompt.py         # Explain This Calc mode
+│   └── debug_prompt.py           # LOD Debugger mode
 ├── references/
 │   ├── expression_types.md       # FIXED/INCLUDE/EXCLUDE/Table Calc decision tree
 │   ├── common_warnings.md        # ~40 expert warnings by expression type
 │   └── domain_schemas.md         # Field reference + common calcs per domain
 ├── examples/
-│   └── sample_outputs.md         # 5 complete worked examples for calibration
+│   └── sample_outputs.md         # 5 complete worked examples for output calibration
 ├── schemas/
 │   ├── retail.json
 │   ├── saas.json
@@ -116,7 +135,7 @@ delod/
 └── requirements.txt
 ```
 
-The real IP is in `references/` — a hand-authored expert knowledge base injected into every prompt. This is what separates the output quality from a generic "write me a Tableau formula" prompt.
+The real IP is in `references/` — a hand-authored expert knowledge base injected into every prompt. This is what separates output quality from a generic "write me a Tableau formula" prompt.
 
 ---
 
@@ -137,15 +156,10 @@ The real IP is in `references/` — a hand-authored expert knowledge base inject
 
 ## Roadmap
 
-Ideas that are next, not just someday:
-
-- [ ] **Explain This Calc** — paste an existing expression, get plain-English explanation + refactoring suggestions
-- [ ] **Tableau Public schema import** — paste a Tableau Public workbook URL, auto-import field names from the datasource metadata
-- [ ] **LOD Debugger** — describe what your calc returns vs what you expected, get a diagnosis
-- [ ] **SQL → Tableau** — paste a SQL subquery, get the equivalent calculated fields
-- [ ] **Calculation library** — save, tag, and search your generated expressions across sessions
+- [ ] **SQL → Tableau** — paste a SQL subquery, get the equivalent calculated fields in order
 - [ ] **Workbook audit** — paste multiple calcs, get them ranked by performance risk and anti-pattern flags
-- [ ] **Export to clipboard** — one-click copy with field name + syntax formatted for the Tableau calc editor
+- [ ] **Calculation library** — save, tag, and search your generated expressions across sessions
+- [ ] **Export to clipboard** — one-click copy formatted for the Tableau calc editor
 
 ---
 
@@ -153,6 +167,6 @@ Ideas that are next, not just someday:
 
 Built by **Vaishali Zilpe** · [LinkedIn](https://linkedin.com/in/vaishalizilpe) · [GitHub](https://github.com/vaishalizilpe)
 
-Powered by [Claude Sonnet 4.6](https://anthropic.com) and [Streamlit](https://streamlit.io).
+Powered by [Claude](https://anthropic.com) and [Streamlit](https://streamlit.io).
 
 Licensed under MIT. Use it, fork it, make it better.
