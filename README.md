@@ -36,6 +36,16 @@ deLOD:
 
 ---
 
+## Three modes
+
+**⚡ Generate Expression** — You describe what you want in plain English: "show rolling 3-month average sales by region" or "flag customers who bought in Q1 but not Q2." deLOD returns a complete, copy-paste-ready Tableau calculated field using your actual field names, an explanation of why the expression is structured the way it is, specific warnings about where it will break in production (context filters, NULL propagation, addressing and partitioning), an alternative approach when one meaningfully exists, and a one-sentence principle that makes you a better Tableau developer for next time.
+
+**🔍 Explain This Calc** — Paste any Tableau expression — something you inherited from a workbook, found on Stack Overflow, or wrote yourself six months ago. deLOD returns a plain-English description of what it does (written for a business audience, not a developer), a step-by-step breakdown of how Tableau evaluates it, a quality rating (Good / Brittle / Over-engineered / Wrong approach / Correct but improvable), and a refactored version with an explanation of what changed and why — if the original can be improved.
+
+**🔧 LOD Debugger** — Your expression runs without errors but returns wrong numbers. Paste the expression, describe what it actually returns, and describe what you expected. deLOD identifies the single specific root cause (not a list of possibilities), explains the mechanism behind the bug, gives you the corrected expression, tells you exactly how to verify the fix in Tableau, and teaches you the underlying principle so you don't hit the same class of bug again.
+
+---
+
 ## Why this exists
 
 Tableau ships an AI assistant (Tableau Agent) inside Tableau Cloud, but it has real limits:
@@ -56,12 +66,6 @@ deLOD is for the analyst who doesn't have Tableau Cloud AI — contractors, free
 ---
 
 ## Features
-
-**Three modes:**
-
-- **⚡ Generate Expression** — describe what you want in plain English, get a production-ready calculated field with warnings, an alternative approach, and a teaching principle
-- **🔍 Explain This Calc** — paste any Tableau expression (inherited, from Stack Overflow, or your own) and get a plain-English breakdown, quality assessment (Good / Brittle / Over-engineered / Wrong approach), and a refactored version if it can be improved
-- **🔧 LOD Debugger** — paste a broken expression, describe what it returns vs what you expected, get an exact root cause diagnosis and a corrected expression
 
 **Schema & data:**
 
